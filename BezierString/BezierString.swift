@@ -69,8 +69,8 @@ class BezierString {
 
 				let length = length - (samples[i-1].length + len1)
 
-				let deltaAngle = arcFi(samples[i+1].angle, samples[i].angle)
-				let orientation = (compareAngles(samples[i+1].angle-CGFloat.Pi/2, samples[i+1].angle, samples[i].angle) > 0 ? -1 : 1)
+				let deltaAngle = arcFi(samples[i+1].angle, fi2: samples[i].angle)
+				let orientation = (compareAngles(samples[i+1].angle-CGFloat.Pi/2, fi1: samples[i+1].angle, fi2: samples[i].angle) > 0 ? -1 : 1)
 				
 				return samples[i].angle + deltaAngle * CGFloat(orientation) * (min(1, length/len1) + max(0, (length-len1)/len2)) / 2
 			}
@@ -118,11 +118,11 @@ class BezierString {
 		CGContextSetAllowsAntialiasing(context, true)
 		CGContextSetShouldAntialias(context, true)
 		
-		CGContextSetInterpolationQuality(context, kCGInterpolationHigh)
+		CGContextSetInterpolationQuality(context, CGInterpolationQuality.High)
 		
 		let line = CTLineCreateWithAttributedString(string)
-		let runs = CTLineGetGlyphRuns(line) as! Array<CTRun>
-		
+        let runs: CFArrayRef = CTLineGetGlyphRuns(line)
+        
 		var linePos: CGFloat = 0
 		let charSpacing: CGFloat
 		let align: NSTextAlignment
@@ -157,8 +157,8 @@ class BezierString {
 		
 		var glyphOffset:CGFloat = 0
 		
-		for run in runs {
-			
+        for runIndex in 0 ..< CFArrayGetCount(runs) {
+			let run: CTRunRef = unsafeBitCast(CFArrayGetValueAtIndex(runs, runIndex), CTRunRef.self)
 			let runCount = CTRunGetGlyphCount(run)
 			
 			var advances = UnsafeMutablePointer<CGSize>(malloc((sizeof(CGSize))*runCount))
@@ -211,7 +211,7 @@ class BezierString {
 		
 		UIGraphicsBeginImageContextWithOptions(imageSize, false, 0)
 		
-		self.drawAttributedString(string, toContext: UIGraphicsGetCurrentContext(), align: alignment, yOffset: yOffset)
+		self.drawAttributedString(string, toContext: UIGraphicsGetCurrentContext()!, align: alignment, yOffset: yOffset)
 		
 		let image = UIGraphicsGetImageFromCurrentImageContext()
 		UIGraphicsEndImageContext()
@@ -266,13 +266,13 @@ class UIBezierLabel: UILabel {
 		super.init(frame: frame)
 	}
 	
-	required init(coder aDecoder: NSCoder) {
+	required init?(coder aDecoder: NSCoder) {
 		super.init(coder: aDecoder)
 	}
 	
 	override func drawRect(rect: CGRect) {
 		if let bezierString = bezierString {
-			bezierString.drawAttributedString(self.attributedText, toContext: UIGraphicsGetCurrentContext(), align: _textAlignment, yOffset: textPathOffset)
+			bezierString.drawAttributedString(self.attributedText!, toContext: UIGraphicsGetCurrentContext()!, align: _textAlignment, yOffset: textPathOffset)
 		} else {
 			super.drawRect(rect)
 		}
